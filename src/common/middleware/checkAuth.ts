@@ -1,7 +1,7 @@
 import { HttpStatus, NestMiddleware } from "@nestjs/common";
 import { Request, Response, NextFunction } from "express";
 import { verifyToken } from "../utils/verify.token";
-import { UserService } from '../../user/user';
+import { UserService } from '../../user/user.service';
 
 export class AuthMiddleware implements NestMiddleware {
   constructor(private us: UserService) {}

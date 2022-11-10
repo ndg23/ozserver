@@ -8,4 +8,5 @@ export class FilmDto {
   createdBy: string;
   created_date: string;
   video: string;
+  media:any;
 }

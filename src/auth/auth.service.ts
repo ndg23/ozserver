@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { UserService } from "../user/user";
+import { UserService } from "../user/user.service";
 import * as bc from "bcrypt";
 import { getToken } from '../common/utils/generateToken';
 import { AuthDto } from './dto/auth.dto';

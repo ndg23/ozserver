@@ -5,9 +5,9 @@ export class SerieDto {
   lng:string;
   country:string;
   type: string;
-  Epititle: string;
-  Epidesc: string;
-  Epicover: string;
+  epititle: string;
+  epidesc: string;
+  epicover: string;
   createdBy: string;
   created_date: string;
   episode: any;

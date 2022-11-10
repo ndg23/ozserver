@@ -19,6 +19,7 @@ import { ConfigModule } from '@nestjs/config';
 import { SerieSchema } from "./film/Models/Serie";
 import { UserSchema } from "./user/Model/User";
 import { AuthMiddleware } from "./common/middleware/checkAuth";
+import { AdminModule } from './admin/admin.module';
 import config from "./common/config";
 
 @Module({
@@ -40,7 +41,8 @@ import config from "./common/config";
       storage: diskStorage({
         destination: "./media"
       })
-    })
+    }),
+    AdminModule
   ],
   controllers: [AppController],
   providers: [AppService]

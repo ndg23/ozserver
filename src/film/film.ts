@@ -13,9 +13,16 @@ import { Iserie } from "./Interface/interface.serie";
 import { SerieDto } from "./Dto/serie.dto";
 import { Iepisode } from "../film/Interface/interface.episode";
 
+import * as aws from "aws-sdk";
+import { ConfigService } from "@nestjs/config";
+import { v4 as uuid } from "uuid";
+import { FilmDto } from "./Dto/film.dto";
+import { HttpStatus } from "@nestjs/common";
+
 @Injectable()
 export class FilmService {
   constructor(
+    private configService: ConfigService,
     @InjectModel("Film") private film: Model<Ifilm>,
     @InjectModel("Episode") private epi: Model<Iepisode>,
     @InjectModel("Serie") private serie: Model<Iserie>
@@ -25,11 +32,94 @@ export class FilmService {
       return res;
     });
   }
-  async uploadFilm(data: Ifilm) {
-    const f = new this.film(data);
-    return f.save();
+  async uploadMedia(dataBuffer: Buffer, filename: string) {
+    const s3 = new aws.S3();
+    const uploadResult = await s3
+      .upload({
+        Bucket: this.configService.get("AWS_PUBLIC_BUCKET_NAME"),
+        Body: dataBuffer,
+        Key: `${uuid()}-${filename}`
+      })
+      .promise();
+
+    return uploadResult;
+  }
+  async saveFilm(film: FilmDto, media: any, res) {
+    const { originalname, buffer } = media;
+
+    try {
+      const upload = await this.uploadMedia(buffer, originalname);
+      const media = {
+        url: upload.Location,
+        key: upload.Key
+      };
+      const dataToset = {
+        media,
+        film
+      };
+      Object.assign(film, media);
+      const f = new this.film({ ...film, media });
+
+      f.save(async (err, data) => {
+        if (err) {
+          const s3 = new aws.S3();
+          await s3
+            .deleteObject({
+              Bucket: this.configService.get("AWS_PUBLIC_BUCKET_NAME"),
+              Key: upload.Key
+            })
+            .promise();
+          return res.status(HttpStatus.NOT_MODIFIED).json("Film error upload");
+        }
+        console.log(data);
+
+        return res.status(HttpStatus.OK).json("Film uploaded");
+      });
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
   }
 
+  async saveSerie(serie: any, media: any, res) {
+    const { originalname, buffer } = media;
+    const { epititle, epidesc } = serie;
+    try {
+      const upload = await this.uploadMedia(buffer, originalname);
+      const media = {
+        url: upload.Location,
+        key: upload.Key
+      };
+      const episode = {
+        title: epititle,
+        desc: epidesc,
+        url: media.url,
+        key: media.key
+      };
+      const f = new this.serie(serie);
+      f.episode.push(episode);
+      console.log(f);
+
+      f.save(async (err, data) => {
+        if (err) {
+          const s3 = new aws.S3();
+          await s3
+            .deleteObject({
+              Bucket: this.configService.get("AWS_PUBLIC_BUCKET_NAME"),
+              Key: upload.Key
+            })
+            .promise();
+          return res.status(HttpStatus.NOT_MODIFIED).json("Serie error upload");
+        }
+        console.log(data);
+
+        return res.status(HttpStatus.OK).json("Serie uploaded");
+      });
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
+  }
   async streamFilm(id: string, response: Response, request: Request) {
     try {
       const data = await this.film.findOne({ _id: id });
@@ -40,9 +130,7 @@ export class FilmService {
       const { range } = request.headers;
       if (range) {
         const { video } = data;
-        const videoPath = statSync(
-          join(process.cwd(), `./public/${video}`)
-        );
+        const videoPath = statSync(join(process.cwd(), `./public/${video}`));
         const CHUNK_SIZE = 1 * 1e6;
         const start = Number(range.replace(/\D/g, ""));
         const end = Math.min(start + CHUNK_SIZE, videoPath.size - 1);
@@ -76,28 +164,27 @@ export class FilmService {
         return res;
       });
   }
-  watchSerie() {}
-  updateSerie() {}
-  async uploadSerie(userId: string, serie: SerieDto, req: Request) {
-    console.log(req.files['cover']. originalname);
-    
+
+  async uploadSerie(userId: string, serie: any, req: any, video: any) {
     //get episode from serie form
-    const { Epidesc, Epititle } = serie;
+    const { epidesc, epititle } = serie;
+
     //build a object epi
     const objetEpi = {
-      title: Epititle,
-      desc: Epidesc,
-      video: req.files['video']?.originalname
+      title: epititle,
+      desc: epidesc
     };
+
     //retrieve an episode
     const createEpi = await this.epi.create(objetEpi);
+
     //save serie
     const new_serie = new this.serie({
       ...serie,
       createdBy: userId,
       episodeId: [createEpi._id]
     });
-   await new_serie.save();
+    await new_serie.save();
   }
 
   async addEpisode(idSerie: string, data: any, req: Request) {
@@ -106,7 +193,7 @@ export class FilmService {
       desc: data?.Epitdesc,
       video: req.file.originalname
     };
-    const episodeCreate =await this.epi.create(episode);
+    const episodeCreate = await this.epi.create(episode);
     this.serie
       .findOneAndUpdate(
         { _id: idSerie, $addToSet: { episodeId: episodeCreate._id } },

@@ -1,6 +1,7 @@
-export interface Iepisode{
-  title: string;
-  desc: string;
-  cover: string;
-  video:string;
+import { Document } from 'mongoose';
+export interface Iepisode extends Document{
+  epititle: string;
+  epidesc: string;
+  key:string;
+  url:string;
 }

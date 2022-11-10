@@ -8,7 +8,10 @@ import {
   Res,
   HttpStatus
 } from "@nestjs/common";
-import { AnyFilesInterceptor, FileFieldsInterceptor } from "@nestjs/platform-express";
+import {
+  AnyFilesInterceptor,
+  FileFieldsInterceptor
+} from "@nestjs/platform-express";
 import { Express, Request, Response } from "express";
 import { FilmDto } from "./Dto/film.dto";
 import { FilmService } from "./film";
@@ -25,23 +28,26 @@ export class FilmController {
   @Post("create/film")
   async createFilm(
     @Body() film: FilmDto,
-    @Req() req: Request,
+    @Req() req,
+    @Res() res,
     @UploadedFiles()
     files: { video?: Express.Multer.File[]; cover?: Express.Multer.File[] }
   ) {
     const dataFilm = {
-      createdBy: req["user"]._id,
+      createdBy: "45df47fg74",
       title: film.title,
       desc: film.desc,
       type: film.type,
       lng: film.lng,
       country: film.country,
-      created_date: Date.now() + "",
-      video: files.video[0].filename,
-      cover: files.cover[0].filename
+      created_date: Date.now().toLocaleString(),
+      media: null,
+      video: "",
+      cover: ""
     };
+
     try {
-      const myFilm = await this.filmS.uploadFilm(dataFilm);
+      const myFilm = await this.filmS.saveFilm(dataFilm, files.video[0], res);
     } catch (err) {}
   }
 
@@ -51,29 +57,34 @@ export class FilmController {
       return stream;
     } catch (error) {}
   }
-  /*@UseInterceptors(
+  @UseInterceptors(
     FileFieldsInterceptor([
       { name: "video", maxCount: 1 },
       { name: "cover", maxCount: 1 }
     ])
-  )*/
-  @UseInterceptors(AnyFilesInterceptor())
-
+  )
+  //@UseInterceptors(AnyFilesInterceptor())
   @Post("create/serie")
   createSerie(
     @UploadedFiles()
-    files: Express.Multer.File
-    ,
+    files: { video?: Express.Multer.File[]; cover?: Express.Multer.File[] },
     @Req() req,
     @Res() res,
     @Body() serie: SerieDto
   ) {
     try {
-      console.log(files);
-      
       const userId = "45fd4gfd";
-      const s = this.filmS.uploadSerie(userId, serie, req);
-      return res.status(HttpStatus.OK).json(s);
+      const dataSerie = {
+        title: serie.title,
+        desc: serie.desc,
+        cover: serie.cover,
+        lng: serie.lng,
+        country: serie.country,
+        type: serie.type,
+        createdBy: "red",
+        created_date: Date.now()
+      };
+      const s = this.filmS.saveSerie(dataSerie,files.video[0], res);
     } catch (err) {
       console.log(err);
     }
