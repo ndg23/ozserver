@@ -9,7 +9,7 @@ import { AuthService } from "../auth/auth.service";
 export class UserService {
   constructor(
     @InjectModel("User") readonly user: Model<Iuser>,
-    private auth: AuthService
+   // private readonly auth: AuthService
   ) {}
   async findByEmail(email: string): Promise<Iuser> {
     return this.user.findOne({ email }).then(
@@ -58,20 +58,24 @@ export class UserService {
       const userExist = await this.user.find({
         $or: [{ email: email, tel: tel }]
       });
-      console.log(userExist);
-      if (!!userExist) {
+      if (userExist.length!==0) {
         return res.status(HttpStatus.CONFLICT).json("User exist");
       }
       const salt = await bc.genSalt(8);
       const hashPass = await bc.hash(password, salt);
       const Us = new this.user(data);
-      Object.assign(new this.user(data), { password: hashPass });
+      Object.assign(Us, { password: hashPass });
       await Us.save();
-      this.auth.signinUser({email, password}).then((payload) => {
+     /* this.auth.signinUser({email, password}).then((payload) => {
         return res
           .status(HttpStatus.CREATED)
           .json({ user: data,payload:payload, message: "User created !" });
-      }) 
+      }) */
+      //const token=await token
+      return res
+          .status(HttpStatus.CREATED)
+          .json({ message: "User created !" });
+      
     } catch (error) {
       console.log(error);
       return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json("Server error");

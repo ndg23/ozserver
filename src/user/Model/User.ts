@@ -9,7 +9,7 @@ export const UserSchema = new mongoose.Schema({
     type: String,
     unique: true,
     lowercase: true,
-    required:[true,"Email required"]
+    required: [true, "Email required"]
   },
   role: { type: String, enum: [RoleUser.AD, RoleUser.CM, RoleUser.DI] },
   tel: { type: String, unique: true },

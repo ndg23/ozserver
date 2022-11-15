@@ -5,7 +5,7 @@ import { getToken } from '../common/utils/generateToken';
 import { AuthDto } from './dto/auth.dto';
 @Injectable()
 export class AuthService {
-  constructor(private userService: UserService) {}
+  constructor(private  userService: UserService) {}
 
   async signinUser(user: AuthDto) {
     try {
@@ -13,6 +13,8 @@ export class AuthService {
       if (userFromBdd && bc.compareSync(user?.password, userFromBdd.password)) {
         const token = getToken(userFromBdd);
         return token;
+      }else{
+        return "NOt match"
       }
     } catch (error) {
       console.log(error);
